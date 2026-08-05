@@ -1,38 +1,58 @@
-name: Build Flutter APK
+        path: build/app/outputs/flutter-apk/app-release.apk
+       name: Build Android APK
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master" ]
 
 jobs:
   build:
+    name: Build APK
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-    - name: Set up Java
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'zulu'
-        java-version: '17'
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
-    - name: Set up Flutter
-      uses: subosito/flutter-action@v2
-      with:
-        flutter-version: '3.x'
-        channel: 'stable'
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.x'
+          channel: 'stable'
 
-    - name: Install Dependencies
-      run: flutter pub get
+      - name: Generate Android Boilerplate & Fix Permissions
+        run: |
+          # 1. إنشاء ملفات أندرويد الأساسية في مجلد مؤقت لتفادي مشكلة الأيقونات
+          flutter create temp_app --project-name charging_cooler --org com.abed.cooler
+          
+          # 2. نقل مجلد أندرويد الجاهز إلى مشروعنا
+          mv temp_app/android ./
+          
+          # 3. تعديل إصدار الأندرويد لتفادي مشكلة توافق مكتبة البطارية
+          sed -i 's/flutter.minSdkVersion/21/g' android/app/build.gradle
+          
+          # 4. إضافة صلاحية البطارية برمجياً لمنع انهيار التطبيق
+          sed -i '/<application/i \    <uses-permission android:name="android.permission.BATTERY_STATS"/>' android/app/src/main/AndroidManifest.xml
+          
+          # 5. تنظيف الملفات المؤقتة
+          rm -rf temp_app
 
-    - name: Build Release APK
-      run: flutter build apk --release
+      - name: Install Dependencies
+        run: flutter pub get
 
-    - name: Upload APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: Cooling-App-Release
-        path: build/app/outputs/flutter-apk/app-release.apk
-        
+      - name: Build APK
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          retention-days: 7
+ 
