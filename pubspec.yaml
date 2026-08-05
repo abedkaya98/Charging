@@ -1,5 +1,5 @@
 name: charging_cooler
-description: A new Flutter project for battery cooling management.
+description: Battery cooling management app.
 publish_to: 'none'
 
 version: 1.0.0+1
